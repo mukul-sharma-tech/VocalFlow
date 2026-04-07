@@ -1,5 +1,5 @@
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional, List, Callable
 
@@ -12,11 +12,19 @@ class RecordingState(Enum):
 
 
 HOTKEY_OPTIONS = {
-    "right_alt":     {"display": "Right Alt / AltGr", "key": "alt gr"},
-    "left_alt":      {"display": "Left Alt",           "key": "left alt"},
-    "right_ctrl":    {"display": "Right Ctrl",         "key": "right ctrl"},
-    "left_ctrl":     {"display": "Left Ctrl",          "key": "left ctrl"},
-    "right_shift":   {"display": "Right Shift",        "key": "right shift"},
+    "right_alt":   {"display": "Right Alt / AltGr", "key": "alt gr"},
+    "left_alt":    {"display": "Left Alt",           "key": "left alt"},
+    "right_ctrl":  {"display": "Right Ctrl",         "key": "right ctrl"},
+    "left_ctrl":   {"display": "Left Ctrl",          "key": "left ctrl"},
+    "right_shift": {"display": "Right Shift",        "key": "right shift"},
+}
+
+# Each theme: list of (R, G, B) color stops, interpolated across waveform bars
+OVERLAY_THEMES = {
+    "Vibrant Blue": [(0x09,0xE0,0xFE),(0x03,0xC1,0xF4),(0x08,0xA1,0xF7),(0x00,0x4F,0xE1)],
+    "Bloom Rush":   [(0xEF,0x70,0x9B),(0xFA,0x93,0x72)],
+    "Mint Flow":    [(0x8D,0xE9,0xD5),(0x32,0xC4,0xC0)],
+    "Magic Garden": [(0xBF,0x0F,0xFF),(0x7B,0x2F,0xFF),(0x3D,0x0F,0xBF)],
 }
 
 
@@ -60,6 +68,9 @@ class AppState:
 
         # Hotkey
         self.selected_hotkey: str = "right_alt"
+
+        # Overlay theme
+        self.selected_overlay_theme: str = "Vibrant Blue"
 
     def set_recording_state(self, state: RecordingState):
         self.recording_state = state

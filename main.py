@@ -32,7 +32,7 @@ class VocalFlowApp:
         self.groq = GroqService()
         self.injector = TextInjector()
         self.muter = AudioMuter()
-        self.overlay = OverlayWindow()
+        self.overlay = OverlayWindow(self.state)
 
         self.settings_win = SettingsWindow(self.state, self.keychain, self.settings)
         self.tray = TrayController(self.state, self._open_settings, self._quit)
@@ -61,6 +61,7 @@ class VocalFlowApp:
         s.selected_code_mix             = self.settings.get("selected_code_mix",             "")
         s.target_language_enabled       = self.settings.get("target_language_enabled",       False)
         s.selected_target_language      = self.settings.get("selected_target_language",      "English")
+        s.selected_overlay_theme        = self.settings.get("selected_overlay_theme",        "Vibrant Blue")
 
     # ------------------------------------------------------------------ #
     # Recording flow                                                       #

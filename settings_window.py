@@ -33,6 +33,7 @@ class SettingsWindow:
         self._build_groq_tab(notebook)
         self._build_features_tab(notebook)
         self._build_hotkey_tab(notebook)
+        self._build_appearance_tab(notebook)
 
     # ------------------------------------------------------------------ #
     # ASR tab                                                              #
@@ -339,3 +340,41 @@ class SettingsWindow:
     def _set_hotkey(self, key: str):
         self._app_state.selected_hotkey = key
         self._settings.set("selected_hotkey", key)
+
+    # ------------------------------------------------------------------ #
+    # Appearance tab                                                       #
+    # ------------------------------------------------------------------ #
+
+    def _build_appearance_tab(self, nb):
+        from app_state import OVERLAY_THEMES
+        frame = ttk.Frame(nb, padding=12)
+        nb.add(frame, text="Appearance")
+
+        ttk.Label(frame, text="Waveform overlay theme:").grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 12)
+        )
+
+        theme_var = tk.StringVar(value=self._app_state.selected_overlay_theme)
+
+        for i, (name, palette) in enumerate(OVERLAY_THEMES.items()):
+            rb = ttk.Radiobutton(
+                frame, text=name, variable=theme_var, value=name,
+                command=lambda n=name: self._set_theme(n)
+            )
+            rb.grid(row=i + 1, column=0, sticky="w", pady=4)
+
+            # Color preview strip
+            preview = tk.Canvas(frame, width=100, height=16, highlightthickness=0, bg="#1e1e1e")
+            seg_w = 100 // len(palette)
+            for j, (r, g, b) in enumerate(palette):
+                preview.create_rectangle(
+                    j * seg_w, 0, (j + 1) * seg_w, 16,
+                    fill=f"#{r:02x}{g:02x}{b:02x}", outline=""
+                )
+            preview.grid(row=i + 1, column=1, padx=12, sticky="w")
+
+        frame.columnconfigure(0, weight=1)
+
+    def _set_theme(self, name: str):
+        self._app_state.selected_overlay_theme = name
+        self._settings.set("selected_overlay_theme", name)
