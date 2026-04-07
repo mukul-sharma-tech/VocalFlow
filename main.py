@@ -105,6 +105,8 @@ class VocalFlowApp:
             code_mix = self.state.selected_code_mix if self.state.code_mix_enabled else None
             target_lang = self.state.selected_target_language if self.state.target_language_enabled else None
 
+            print(f"[DEBUG] has_groq={bool(has_groq)} spell={self.state.correction_mode_enabled} grammar={self.state.grammar_correction_enabled} code_mix={code_mix} target_lang={target_lang} model={self.state.selected_groq_model!r}")
+
             if has_groq and any([
                 self.state.correction_mode_enabled,
                 self.state.grammar_correction_enabled,

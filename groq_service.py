@@ -55,14 +55,20 @@ class GroqService:
                     headers={"Authorization": f"Bearer {api_key}"},
                     timeout=10,
                 )
-                data = r.json().get("data", [])
+                print(f"[DEBUG] Groq models status: {r.status_code}")
+                body = r.json()
+                print(f"[DEBUG] Groq models response keys: {list(body.keys())}")
+                data = body.get("data", [])
+                print(f"[DEBUG] Groq raw model count: {len(data)}")
                 models = [
                     GroqModel(id=m["id"], display_name=m["id"])
                     for m in data if m.get("object") == "model"
                 ]
                 models.sort(key=lambda m: m.id)
+                print(f"[DEBUG] Groq filtered models: {[m.id for m in models]}")
                 callback(models)
-            except Exception:
+            except Exception as e:
+                print(f"[DEBUG] Groq fetch error: {e}")
                 callback([])
 
         threading.Thread(target=_fetch, daemon=True).start()
