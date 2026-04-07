@@ -1,5 +1,14 @@
+"""
+Watches for the configured hotkey globally across all apps.
+Uses the `keyboard` library which hooks into Windows low-level keyboard events.
+
+Note: AltGr on non-US keyboards fires both 'alt gr' AND 'right ctrl' simultaneously.
+The _key_down guard prevents double-triggering from that.
+"""
 import threading
+
 import keyboard
+
 from app_state import AppState, HOTKEY_OPTIONS
 
 
@@ -8,11 +17,10 @@ class HotkeyManager:
         self._app_state = app_state
         self._on_press = on_press
         self._on_release = on_release
-        self._key_down = False
+        self._key_down = False  # tracks whether we're currently in a "held" state
         self._hook = None
 
     def start_listening(self):
-        # keyboard.hook fires on every key event globally
         self._hook = keyboard.hook(self._handle_event, suppress=False)
 
     def stop_listening(self):
@@ -21,11 +29,8 @@ class HotkeyManager:
             self._hook = None
 
     def _handle_event(self, event: keyboard.KeyboardEvent):
-        hotkey_key = HOTKEY_OPTIONS.get(self._app_state.selected_hotkey, {}).get("key", "")
-        if not hotkey_key:
-            return
-
-        if event.name != hotkey_key:
+        target = HOTKEY_OPTIONS.get(self._app_state.selected_hotkey, {}).get("key", "")
+        if not target or event.name != target:
             return
 
         if event.event_type == keyboard.KEY_DOWN and not self._key_down:

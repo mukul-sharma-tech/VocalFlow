@@ -1,6 +1,17 @@
+"""
+Optional LLM post-processing via Groq.
+Takes the raw Deepgram transcript and cleans it up before it gets pasted.
+
+Supported operations (applied in order):
+  1. Code-mix transliteration  — e.g. Hinglish Devanagari → Roman script
+  2. Spelling correction
+  3. Grammar correction
+  4. Translation / style conversion
+"""
 import threading
 from dataclasses import dataclass
 from typing import Callable, List, Optional
+
 import httpx
 
 
@@ -10,12 +21,14 @@ class GroqModel:
     display_name: str
 
 
+# These are "style" targets, not pure languages — they get transliterated, not translated
 CODE_MIX_STYLES = {
     "Hinglish", "Tanglish", "Benglish", "Kanglish", "Tenglish",
     "Minglish", "Punglish", "Spanglish", "Franglais", "Portuñol",
     "Chinglish", "Japlish", "Konglish", "Arabizi", "Sheng", "Camfranglais",
 }
 
+# Shown in the Features tab dropdown
 CODE_MIX_OPTIONS = [
     ("Hinglish",     "Hindi + English"),
     ("Tanglish",     "Tamil + English"),
@@ -35,11 +48,14 @@ CODE_MIX_OPTIONS = [
     ("Camfranglais", "French + English + local languages"),
 ]
 
+# Shown in the "Convert to Language" dropdown
 TARGET_LANGUAGES = [
+    # Pure languages
     "English", "Hindi", "Spanish", "French", "German",
     "Portuguese", "Japanese", "Korean", "Arabic", "Bengali",
     "Tamil", "Telugu", "Kannada", "Marathi", "Punjabi",
     "Russian", "Chinese (Simplified)", "Italian", "Dutch", "Swahili",
+    # Code-mix styles (transliterate rather than translate)
     "Hinglish", "Tanglish", "Benglish", "Kanglish", "Tenglish",
     "Minglish", "Punglish", "Spanglish", "Franglais", "Portuñol",
     "Chinglish", "Japlish", "Konglish", "Arabizi", "Sheng", "Camfranglais",
@@ -48,6 +64,7 @@ TARGET_LANGUAGES = [
 
 class GroqService:
     def fetch_models(self, api_key: str, callback: Callable[[List[GroqModel]], None]):
+        """Fetch available models from Groq's API."""
         def _fetch():
             try:
                 r = httpx.get(
@@ -55,20 +72,13 @@ class GroqService:
                     headers={"Authorization": f"Bearer {api_key}"},
                     timeout=10,
                 )
-                print(f"[DEBUG] Groq models status: {r.status_code}")
-                body = r.json()
-                print(f"[DEBUG] Groq models response keys: {list(body.keys())}")
-                data = body.get("data", [])
-                print(f"[DEBUG] Groq raw model count: {len(data)}")
                 models = [
                     GroqModel(id=m["id"], display_name=m["id"])
-                    for m in data if m.get("object") == "model"
+                    for m in r.json().get("data", [])
+                    if m.get("object") == "model"
                 ]
-                models.sort(key=lambda m: m.id)
-                print(f"[DEBUG] Groq filtered models: {[m.id for m in models]}")
-                callback(models)
-            except Exception as e:
-                print(f"[DEBUG] Groq fetch error: {e}")
+                callback(sorted(models, key=lambda m: m.id))
+            except Exception:
                 callback([])
 
         threading.Thread(target=_fetch, daemon=True).start()
@@ -82,18 +92,22 @@ class GroqService:
         fix_grammar: bool = False,
         code_mix: Optional[str] = None,
         target_language: Optional[str] = None,
-        callback: Callable[[str], None] = None,
+        callback: Optional[Callable[[str], None]] = None,
     ):
-        has_any = fix_spelling or fix_grammar or code_mix or target_language
-        if not api_key or not model or not has_any:
+        """
+        Send the transcript to Groq for cleanup.
+        Falls back to the original text if anything goes wrong.
+        """
+        if not api_key or not model or not any([fix_spelling, fix_grammar, code_mix, target_language]):
             if callback:
                 callback(text)
             return
 
         def _process():
-            instructions = []
-            step = 1
+            instructions, step = [], 1
+
             if code_mix:
+                # Transliterate non-Roman script to Roman — don't translate
                 instructions.append(
                     f"{step}. The input is in {code_mix}. Transliterate any non-Roman script "
                     f"to Roman script. Keep English words as-is. Do not translate."
@@ -107,14 +121,14 @@ class GroqService:
                 step += 1
             if target_language:
                 if target_language in CODE_MIX_STYLES:
+                    # Style conversion — transliterate, don't translate
                     instructions.append(
                         f"{step}. Rewrite in {target_language} style: keep English words as-is, "
                         f"transliterate non-Roman script to Roman. Do not translate."
                     )
                 else:
-                    instructions.append(
-                        f"{step}. Translate the entire text to {target_language}."
-                    )
+                    # Full translation to a target language
+                    instructions.append(f"{step}. Translate the entire text to {target_language}.")
 
             system_prompt = (
                 "Process the following text by applying these steps in order:\n"
@@ -125,24 +139,22 @@ class GroqService:
             try:
                 r = httpx.post(
                     "https://api.groq.com/openai/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                    },
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     json={
                         "model": model,
                         "messages": [
                             {"role": "system", "content": system_prompt},
                             {"role": "user",   "content": text},
                         ],
-                        "temperature": 0,
+                        "temperature": 0,  # deterministic output
                     },
                     timeout=15,
                 )
                 result = r.json()["choices"][0]["message"]["content"].strip()
                 if callback:
-                    callback(result if result else text)
+                    callback(result or text)
             except Exception:
+                # If Groq fails for any reason, fall back to the raw transcript
                 if callback:
                     callback(text)
 

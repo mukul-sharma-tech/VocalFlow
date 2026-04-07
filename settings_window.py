@@ -1,6 +1,14 @@
+"""
+Settings window — a tabbed tkinter dialog with five sections:
+  ASR (Deepgram)  — API key, model, language
+  Groq (LLM)      — API key, model
+  Features        — spelling, grammar, code-mix, translation
+  Hotkey          — which key triggers recording
+  Appearance      — waveform overlay color theme
+"""
 import tkinter as tk
-from tkinter import ttk, messagebox
-import threading
+from tkinter import ttk
+
 from app_state import AppState, HOTKEY_OPTIONS
 from groq_service import CODE_MIX_OPTIONS, TARGET_LANGUAGES
 
@@ -8,11 +16,12 @@ from groq_service import CODE_MIX_OPTIONS, TARGET_LANGUAGES
 class SettingsWindow:
     def __init__(self, app_state: AppState, keychain, settings):
         self._app_state = app_state
-        self._keychain = keychain
-        self._settings = settings
+        self._keychain  = keychain
+        self._settings  = settings
         self._win: tk.Toplevel | None = None
 
     def open(self):
+        # If already open, just bring it to the front
         if self._win and self._win.winfo_exists():
             self._win.lift()
             self._win.focus_force()
@@ -26,17 +35,17 @@ class SettingsWindow:
         win.geometry("480x680")
         win.resizable(False, False)
 
-        notebook = ttk.Notebook(win)
-        notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        nb = ttk.Notebook(win)
+        nb.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self._build_asr_tab(notebook)
-        self._build_groq_tab(notebook)
-        self._build_features_tab(notebook)
-        self._build_hotkey_tab(notebook)
-        self._build_appearance_tab(notebook)
+        self._build_asr_tab(nb)
+        self._build_groq_tab(nb)
+        self._build_features_tab(nb)
+        self._build_hotkey_tab(nb)
+        self._build_appearance_tab(nb)
 
     # ------------------------------------------------------------------ #
-    # ASR tab                                                              #
+    # ASR tab — Deepgram API key, model, language                         #
     # ------------------------------------------------------------------ #
 
     def _build_asr_tab(self, nb):
@@ -44,7 +53,8 @@ class SettingsWindow:
         nb.add(frame, text="ASR (Deepgram)")
 
         ttk.Label(frame, text="Deepgram API Key").grid(row=0, column=0, sticky="w", pady=4)
-        key_var = tk.StringVar(value=self._app_state.deepgram_api_key)
+
+        key_var   = tk.StringVar(value=self._app_state.deepgram_api_key)
         key_entry = ttk.Entry(frame, textvariable=key_var, show="*", width=40)
         key_entry.grid(row=1, column=0, columnspan=2, sticky="ew", pady=2)
 
@@ -61,22 +71,23 @@ class SettingsWindow:
             self._keychain.store("deepgram_api_key", val)
             self._app_state.deepgram_api_key = val
             status_var.set("Saved!")
-            win = self._win
-            if win:
-                win.after(2000, lambda: status_var.set(""))
+            if self._win:
+                self._win.after(2000, lambda: status_var.set(""))
 
         ttk.Button(frame, text="Save", command=save_key).grid(row=2, column=0, sticky="w", pady=4)
         ttk.Label(frame, textvariable=status_var, foreground="green").grid(row=2, column=1, sticky="w")
 
         ttk.Separator(frame).grid(row=3, column=0, columnspan=3, sticky="ew", pady=8)
 
+        # Model picker
         ttk.Label(frame, text="Model").grid(row=4, column=0, sticky="w")
-        model_var = tk.StringVar(value=self._app_state.selected_model)
+        model_var   = tk.StringVar(value=self._app_state.selected_model)
         model_combo = ttk.Combobox(frame, textvariable=model_var, state="readonly", width=30)
         model_combo.grid(row=4, column=1, columnspan=2, sticky="ew", pady=2)
 
+        # Language picker — options depend on the selected model
         ttk.Label(frame, text="Language").grid(row=5, column=0, sticky="w")
-        lang_var = tk.StringVar(value=self._app_state.selected_language)
+        lang_var   = tk.StringVar(value=self._app_state.selected_language)
         lang_combo = ttk.Combobox(frame, textvariable=lang_var, state="readonly", width=30)
         lang_combo.grid(row=5, column=1, columnspan=2, sticky="ew", pady=2)
 
@@ -86,22 +97,19 @@ class SettingsWindow:
             selected = model_var.get()
             self._app_state.selected_model = selected
             self._settings.set("selected_model", selected)
-            model = next(
-                (m for m in self._app_state.available_models if m.canonical_name == selected), None
-            )
+            # Update language options for the newly selected model
+            model = next((m for m in self._app_state.available_models if m.canonical_name == selected), None)
             if model:
-                langs = model.languages
-                lang_combo["values"] = langs
-                if self._app_state.selected_language not in langs:
-                    lang_var.set(langs[0] if langs else "")
+                lang_combo["values"] = model.languages
+                if self._app_state.selected_language not in model.languages:
+                    lang_var.set(model.languages[0] if model.languages else "")
                     self._app_state.selected_language = lang_var.get()
-
-        model_combo.bind("<<ComboboxSelected>>", on_model_change)
 
         def on_lang_change(event=None):
             self._app_state.selected_language = lang_var.get()
             self._settings.set("selected_language", lang_var.get())
 
+        model_combo.bind("<<ComboboxSelected>>", on_model_change)
         lang_combo.bind("<<ComboboxSelected>>", on_lang_change)
 
         def fetch_models():
@@ -122,7 +130,6 @@ class SettingsWindow:
                 fetch_status.set("Done" if names else "No models found")
                 if self._win:
                     self._win.after(2000, lambda: fetch_status.set(""))
-
             from deepgram_service import DeepgramService
             DeepgramService().fetch_models(self._app_state.deepgram_api_key, _done)
 
@@ -133,7 +140,7 @@ class SettingsWindow:
             row=6, column=1, sticky="w"
         )
 
-        # Populate if already loaded
+        # Pre-populate if models were already fetched this session
         if self._app_state.available_models:
             names = [m.canonical_name for m in self._app_state.available_models]
             model_combo["values"] = names
@@ -143,7 +150,7 @@ class SettingsWindow:
         frame.columnconfigure(1, weight=1)
 
     # ------------------------------------------------------------------ #
-    # Groq tab                                                             #
+    # Groq tab — LLM post-processing API key and model                    #
     # ------------------------------------------------------------------ #
 
     def _build_groq_tab(self, nb):
@@ -151,7 +158,8 @@ class SettingsWindow:
         nb.add(frame, text="Groq (LLM)")
 
         ttk.Label(frame, text="Groq API Key").grid(row=0, column=0, sticky="w", pady=4)
-        key_var = tk.StringVar(value=self._app_state.groq_api_key)
+
+        key_var   = tk.StringVar(value=self._app_state.groq_api_key)
         key_entry = ttk.Entry(frame, textvariable=key_var, show="*", width=40)
         key_entry.grid(row=1, column=0, columnspan=2, sticky="ew", pady=2)
 
@@ -178,7 +186,7 @@ class SettingsWindow:
 
         ttk.Label(frame, text="Model").grid(row=4, column=0, sticky="w")
         groq_model_var = tk.StringVar(value=self._app_state.selected_groq_model)
-        groq_combo = ttk.Combobox(frame, textvariable=groq_model_var, state="readonly", width=30)
+        groq_combo     = ttk.Combobox(frame, textvariable=groq_model_var, state="readonly", width=30)
         groq_combo.grid(row=4, column=1, columnspan=2, sticky="ew", pady=2)
 
         def on_groq_model_change(event=None):
@@ -215,22 +223,21 @@ class SettingsWindow:
         )
 
         if self._app_state.available_groq_models:
-            ids = [m.id for m in self._app_state.available_groq_models]
-            groq_combo["values"] = ids
+            groq_combo["values"] = [m.id for m in self._app_state.available_groq_models]
             groq_model_var.set(self._app_state.selected_groq_model)
 
         frame.columnconfigure(1, weight=1)
 
     # ------------------------------------------------------------------ #
-    # Features tab                                                         #
+    # Features tab — what Groq does with the transcript                   #
     # ------------------------------------------------------------------ #
 
     def _build_features_tab(self, nb):
         frame = ttk.Frame(nb, padding=12)
         nb.add(frame, text="Features")
-
         row = 0
 
+        # Spelling correction
         spell_var = tk.BooleanVar(value=self._app_state.correction_mode_enabled)
         def on_spell():
             self._app_state.correction_mode_enabled = spell_var.get()
@@ -240,6 +247,7 @@ class SettingsWindow:
         )
         row += 1
 
+        # Grammar correction
         grammar_var = tk.BooleanVar(value=self._app_state.grammar_correction_enabled)
         def on_grammar():
             self._app_state.grammar_correction_enabled = grammar_var.get()
@@ -252,9 +260,10 @@ class SettingsWindow:
         ttk.Separator(frame).grid(row=row, column=0, columnspan=2, sticky="ew", pady=8)
         row += 1
 
-        codemix_var = tk.BooleanVar(value=self._app_state.code_mix_enabled)
+        # Code-mix input — for people who speak a mix of two languages
+        codemix_var       = tk.BooleanVar(value=self._app_state.code_mix_enabled)
         codemix_combo_var = tk.StringVar(value=self._app_state.selected_code_mix)
-        codemix_combo = ttk.Combobox(
+        codemix_combo     = ttk.Combobox(
             frame,
             textvariable=codemix_combo_var,
             values=[f"{n} ({d})" for n, d in CODE_MIX_OPTIONS],
@@ -268,6 +277,7 @@ class SettingsWindow:
             codemix_combo.config(state="readonly" if enabled else "disabled")
 
         def on_codemix_select(event=None):
+            # Strip the description part — store just the name e.g. "Hinglish"
             raw = codemix_combo_var.get().split(" (")[0]
             self._app_state.selected_code_mix = raw
             self._settings.set("selected_code_mix", raw)
@@ -285,9 +295,10 @@ class SettingsWindow:
         ttk.Separator(frame).grid(row=row, column=0, columnspan=2, sticky="ew", pady=8)
         row += 1
 
-        target_var = tk.BooleanVar(value=self._app_state.target_language_enabled)
+        # Target language — translate or style-convert the output
+        target_var      = tk.BooleanVar(value=self._app_state.target_language_enabled)
         target_lang_var = tk.StringVar(value=self._app_state.selected_target_language)
-        target_combo = ttk.Combobox(
+        target_combo    = ttk.Combobox(
             frame, textvariable=target_lang_var,
             values=TARGET_LANGUAGES, state="disabled", width=35
         )
@@ -314,26 +325,23 @@ class SettingsWindow:
         frame.columnconfigure(0, weight=1)
 
     # ------------------------------------------------------------------ #
-    # Hotkey tab                                                           #
+    # Hotkey tab — which key the user holds to record                     #
     # ------------------------------------------------------------------ #
 
     def _build_hotkey_tab(self, nb):
         frame = ttk.Frame(nb, padding=12)
         nb.add(frame, text="Hotkey")
 
-        ttk.Label(frame, text="Hold key to record, release to transcribe.").grid(
+        ttk.Label(frame, text="Hold the key to record. Release to transcribe.").grid(
             row=0, column=0, columnspan=2, sticky="w", pady=(0, 12)
         )
 
         hotkey_var = tk.StringVar(value=self._app_state.selected_hotkey)
-        options = list(HOTKEY_OPTIONS.items())
-
-        for i, (key, info) in enumerate(options):
-            rb = ttk.Radiobutton(
+        for i, (key, info) in enumerate(HOTKEY_OPTIONS.items()):
+            ttk.Radiobutton(
                 frame, text=info["display"], variable=hotkey_var, value=key,
                 command=lambda k=key: self._set_hotkey(k)
-            )
-            rb.grid(row=i + 1, column=0, sticky="w", pady=3)
+            ).grid(row=i + 1, column=0, sticky="w", pady=3)
 
         frame.columnconfigure(0, weight=1)
 
@@ -342,11 +350,12 @@ class SettingsWindow:
         self._settings.set("selected_hotkey", key)
 
     # ------------------------------------------------------------------ #
-    # Appearance tab                                                       #
+    # Appearance tab — waveform overlay color theme                       #
     # ------------------------------------------------------------------ #
 
     def _build_appearance_tab(self, nb):
         from app_state import OVERLAY_THEMES
+
         frame = ttk.Frame(nb, padding=12)
         nb.add(frame, text="Appearance")
 
@@ -357,13 +366,12 @@ class SettingsWindow:
         theme_var = tk.StringVar(value=self._app_state.selected_overlay_theme)
 
         for i, (name, palette) in enumerate(OVERLAY_THEMES.items()):
-            rb = ttk.Radiobutton(
+            ttk.Radiobutton(
                 frame, text=name, variable=theme_var, value=name,
                 command=lambda n=name: self._set_theme(n)
-            )
-            rb.grid(row=i + 1, column=0, sticky="w", pady=4)
+            ).grid(row=i + 1, column=0, sticky="w", pady=4)
 
-            # Color preview strip
+            # Show a small color swatch so the user knows what they're picking
             preview = tk.Canvas(frame, width=100, height=16, highlightthickness=0, bg="#1e1e1e")
             seg_w = 100 // len(palette)
             for j, (r, g, b) in enumerate(palette):
