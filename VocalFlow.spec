@@ -2,29 +2,28 @@
 
 a = Analysis(
     ['main.py'],
-    pathex=[],
+    pathex=['.'],
     binaries=[],
     datas=[],
     hiddenimports=[
-        # pycaw uses COM interfaces that PyInstaller misses
-        'pycaw.pycaw',
-        'comtypes',
-        'comtypes.client',
-        'comtypes.server',
-        # keyring backend for Windows Credential Manager
+        # app packages
+        'config',
+        'core', 'core.app_state', 'core.audio_engine', 'core.audio_muter',
+        'core.hotkey_manager', 'core.text_injector',
+        'services', 'services.deepgram_service', 'services.groq_service',
+        'storage', 'storage.keychain_service',
+        'ui', 'ui.tray_controller', 'ui.overlay_window',
+        'ui.settings_window', 'ui.welcome_window',
+        # pycaw / COM
+        'pycaw.pycaw', 'comtypes', 'comtypes.client', 'comtypes.server',
+        # keyring Windows backend
         'keyring.backends.Windows',
-        # sounddevice needs these at runtime
-        'sounddevice',
-        'numpy',
-        # win32 modules
-        'win32api',
-        'win32con',
-        'win32gui',
-        # welcome window
-        'welcome_window',
+        # audio
+        'sounddevice', 'numpy',
+        # win32
+        'win32api', 'win32con', 'win32gui',
     ],
     hookspath=[],
-    hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
@@ -40,16 +39,15 @@ exe = EXE(
     [],
     name='VocalFlow',
     debug=False,
-    bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,      # no terminal window — tray app
+    bootloader_ignore_signals=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon='icon.ico',  # uncomment and add an .ico file if you want a custom icon
 )

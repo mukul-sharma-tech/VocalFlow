@@ -25,13 +25,18 @@ C_SUCCESS_BG    = "#dff6dd"       # Success green background
 PAGES = ["Overview", "Setup", "API Keys", "Features", "Tips"]
 
 class WelcomeWindow:
-    def __init__(self):
+    def __init__(self, parent=None):
         self._current_page = 0
         self._nav_items = []
+        self._parent = parent
         self._build()
 
     def _build(self):
-        root = tk.Tk()
+        # Use Toplevel if a parent exists (app already running), else Tk
+        if self._parent:
+            root = tk.Toplevel(self._parent)
+        else:
+            root = tk.Tk()
         self._root = root
         root.title("VocalFlow — Getting Started")
         root.geometry("820x600")
@@ -39,15 +44,18 @@ class WelcomeWindow:
         root.configure(bg=C_BG)
         root.protocol("WM_DELETE_WINDOW", self._close)
         root.update_idletasks()
-        
+
         # Center window
         x = (root.winfo_screenwidth()  - 820) // 2
         y = (root.winfo_screenheight() - 600) // 2
         root.geometry(f"820x600+{x}+{y}")
-        
+
         self._build_layout()
         self._show_page(0)
-        root.mainloop()
+
+        # Only block if running standalone (not inside main app's loop)
+        if not self._parent:
+            root.mainloop()
 
     def _build_layout(self):
         # Sidebar (Left Navigation Pane)

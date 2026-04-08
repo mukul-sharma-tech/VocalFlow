@@ -9,8 +9,8 @@ Settings window — a tabbed tkinter dialog with five sections:
 import tkinter as tk
 from tkinter import ttk
 
-from app_state import AppState, HOTKEY_OPTIONS
-from groq_service import CODE_MIX_OPTIONS, TARGET_LANGUAGES
+from core.app_state import AppState, HOTKEY_OPTIONS, OVERLAY_THEMES
+from services.groq_service import CODE_MIX_OPTIONS, TARGET_LANGUAGES
 
 
 class SettingsWindow:
@@ -130,7 +130,7 @@ class SettingsWindow:
                 fetch_status.set("Done" if names else "No models found")
                 if self._win:
                     self._win.after(2000, lambda: fetch_status.set(""))
-            from deepgram_service import DeepgramService
+            from services.deepgram_service import DeepgramService
             DeepgramService().fetch_models(self._app_state.deepgram_api_key, _done)
 
         ttk.Button(frame, text="Fetch Models", command=fetch_models).grid(
@@ -212,7 +212,7 @@ class SettingsWindow:
                 fetch_status.set("Done" if ids else "No models found")
                 if self._win:
                     self._win.after(2000, lambda: fetch_status.set(""))
-            from groq_service import GroqService
+            from services.groq_service import GroqService
             GroqService().fetch_models(self._app_state.groq_api_key, _done)
 
         ttk.Button(frame, text="Fetch Models", command=fetch_groq).grid(
@@ -336,10 +336,12 @@ class SettingsWindow:
             row=0, column=0, columnspan=2, sticky="w", pady=(0, 12)
         )
 
-        hotkey_var = tk.StringVar(value=self._app_state.selected_hotkey)
+        self._hotkey_var = tk.StringVar(value=self._app_state.selected_hotkey)
+
         for i, (key, info) in enumerate(HOTKEY_OPTIONS.items()):
             ttk.Radiobutton(
-                frame, text=info["display"], variable=hotkey_var, value=key,
+                frame, text=info["display"],
+                variable=self._hotkey_var, value=key,
                 command=lambda k=key: self._set_hotkey(k)
             ).grid(row=i + 1, column=0, sticky="w", pady=3)
 
@@ -354,7 +356,7 @@ class SettingsWindow:
     # ------------------------------------------------------------------ #
 
     def _build_appearance_tab(self, nb):
-        from app_state import OVERLAY_THEMES
+        from core.app_state import OVERLAY_THEMES
 
         frame = ttk.Frame(nb, padding=12)
         nb.add(frame, text="Appearance")
@@ -363,15 +365,15 @@ class SettingsWindow:
             row=0, column=0, columnspan=2, sticky="w", pady=(0, 12)
         )
 
-        theme_var = tk.StringVar(value=self._app_state.selected_overlay_theme)
+        self._theme_var = tk.StringVar(value=self._app_state.selected_overlay_theme)
 
         for i, (name, palette) in enumerate(OVERLAY_THEMES.items()):
             ttk.Radiobutton(
-                frame, text=name, variable=theme_var, value=name,
+                frame, text=name,
+                variable=self._theme_var, value=name,
                 command=lambda n=name: self._set_theme(n)
             ).grid(row=i + 1, column=0, sticky="w", pady=4)
 
-            # Show a small color swatch so the user knows what they're picking
             preview = tk.Canvas(frame, width=100, height=16, highlightthickness=0, bg="#1e1e1e")
             seg_w = 100 // len(palette)
             for j, (r, g, b) in enumerate(palette):

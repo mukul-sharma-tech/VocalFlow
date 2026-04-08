@@ -45,6 +45,7 @@ class DeepgramService:
         self._language = language
 
         self._loop = asyncio.new_event_loop()
+        self._loop.set_exception_handler(lambda loop, ctx: None)  # suppress cleanup warnings
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
 
@@ -54,15 +55,49 @@ class DeepgramService:
 
     def send_audio(self, pcm_bytes: bytes):
         """Forward a PCM chunk to Deepgram. Safe to call from any thread."""
-        if self._loop and self._ws:
+        if self._loop and not self._loop.is_closed() and self._ws:
             asyncio.run_coroutine_threadsafe(self._send(pcm_bytes), self._loop)
 
     def close_stream(self, callback: Callable[[str], None]):
         """Signal end of audio. Deepgram will flush and return the final transcript."""
         self._final_callback = callback
         self._is_waiting_final = True
-        if self._loop:
+        if self._loop and not self._loop.is_closed():
             asyncio.run_coroutine_threadsafe(self._flush(), self._loop)
+
+    def fetch_balance(self, api_key: str, callback: Callable[[str], None]):
+        """Fetch remaining Deepgram credit balance."""
+        def _fetch():
+            try:
+                # Get project ID first
+                r = httpx.get(
+                    "https://api.deepgram.com/v1/projects",
+                    headers={"Authorization": f"Token {api_key}"},
+                    timeout=10,
+                )
+                projects = r.json().get("projects", [])
+                if not projects:
+                    callback("No project found")
+                    return
+                project_id = projects[0]["project_id"]
+
+                # Get balance for that project
+                r2 = httpx.get(
+                    f"https://api.deepgram.com/v1/projects/{project_id}/balances",
+                    headers={"Authorization": f"Token {api_key}"},
+                    timeout=10,
+                )
+                balances = r2.json().get("balances", [])
+                if balances:
+                    amount = balances[0].get("amount", 0)
+                    units  = balances[0].get("units", "")
+                    callback(f"${amount:.4f} {units}".strip())
+                else:
+                    callback("No balance info")
+            except Exception as e:
+                callback(f"Error: {e}")
+
+        threading.Thread(target=_fetch, daemon=True).start()
 
     def fetch_models(self, api_key: str, callback: Callable[[List[DeepgramModel]], None]):
         """Fetch available streaming models from the Deepgram API."""
@@ -109,16 +144,7 @@ class DeepgramService:
     # -- async internals --
 
     def _run_loop(self):
-        try:
-            self._loop.run_until_complete(self._connect_and_receive())
-        finally:
-            # Clean up any pending tasks (e.g. the _flush sleep) to avoid warnings
-            pending = asyncio.all_tasks(self._loop)
-            for task in pending:
-                task.cancel()
-            if pending:
-                self._loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-            self._loop.close()
+        self._loop.run_until_complete(self._connect_and_receive())
 
     async def _connect_and_receive(self):
         url = (

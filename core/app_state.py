@@ -18,9 +18,9 @@ class RecordingState(Enum):
 # Keys the user can hold to trigger recording
 HOTKEY_OPTIONS = {
     "right_alt":   {"display": "Right Alt / AltGr", "key": "alt gr"},
-    "left_alt":    {"display": "Left Alt",           "key": "left alt"},
+    "left_alt":    {"display": "Left Alt",           "key": "alt"},
     "right_ctrl":  {"display": "Right Ctrl",         "key": "right ctrl"},
-    "left_ctrl":   {"display": "Left Ctrl",          "key": "left ctrl"},
+    "left_ctrl":   {"display": "Left Ctrl",          "key": "ctrl"},
     "right_shift": {"display": "Right Shift",        "key": "right shift"},
 }
 

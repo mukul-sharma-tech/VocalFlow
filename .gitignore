@@ -1,26 +1,21 @@
-# Build output
-.build/
-VocalFlow.app/
-WisprClone.app/
-.env
-# Installer output
+# PyInstaller build output
+build/
 dist/
+*.spec.bak
 
-# Xcode / Swift
-*.xcodeproj/
-*.xcworkspace/
-DerivedData/
-*.o
-*.d
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
 
-# macOS
+# Settings & secrets (user-specific)
+.vocalflow_settings.json
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
-.AppleDouble
-.LSOverride
-__MACOSX/
-
-# Secrets / keys (never commit)
-*.pem
-*.key
-*.p12
-*.mobileprovision
+Thumbs.db

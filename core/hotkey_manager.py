@@ -9,7 +9,7 @@ import threading
 
 import keyboard
 
-from app_state import AppState, HOTKEY_OPTIONS
+from core.app_state import AppState, HOTKEY_OPTIONS
 
 
 class HotkeyManager:

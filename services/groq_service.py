@@ -3,7 +3,7 @@ Optional LLM post-processing via Groq.
 Takes the raw Deepgram transcript and cleans it up before it gets pasted.
 
 Supported operations (applied in order):
-  1. Code-mix transliteration  — e.g. Hinglish Devanagari → Roman script
+  1. Code-mix transliteration  - e.g. Hinglish Devanagari → Roman script
   2. Spelling correction
   3. Grammar correction
   4. Translation / style conversion

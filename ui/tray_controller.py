@@ -20,7 +20,7 @@ import win32con
 import win32gui
 from PIL import Image, ImageDraw
 
-from app_state import AppState, RecordingState
+from core.app_state import AppState, RecordingState
 
 # Context menu item IDs
 MENU_SETTINGS = 1023
