@@ -8,7 +8,7 @@ If a key is set here, it will be used as the default on first launch.
 
 # Deepgram API key — used for speech-to-text
 # Get yours free at: https://console.deepgram.com/signup
-DEEPGRAM_API_KEY = "fcea8f017045391ccb0af1b50169c7dbce1323ea"
+DEEPGRAM_API_KEY = ""
 
 # Groq API key — optional, used for spelling/grammar/translation
 # Get yours free at: https://console.groq.com
