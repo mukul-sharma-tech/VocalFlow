@@ -1,47 +1,64 @@
 # VocalFlow for Windows
 
+> Windows port of [VocalFlow for macOS](https://github.com/Vocallabsai/vocalflow)
+
 A lightweight Windows system tray app that lets you dictate into any text field — anywhere on your PC — using a hold-to-record hotkey.
 
 **Hold a key → speak → release → text appears at your cursor.**
-
-> Windows port of [VocalFlow for macOS](https://github.com/Vocallabsai/vocalflow)
 
 ---
 
 ## How it works
 
-1. Hold your configured hotkey (default: Right Alt / AltGr)
-2. Speak
-3. Release — transcript is injected at your cursor via simulated Ctrl+V
+```
+Hold hotkey  →  Mic streams audio to Deepgram  →  Release  →  (optional Groq cleanup)  →  Ctrl+V paste
+```
 
-Audio streams in real-time to [Deepgram](https://deepgram.com) for transcription. Optionally, the raw transcript passes through [Groq](https://groq.com) for spelling/grammar correction, code-mix transliteration, or translation.
+1. Hold your configured hotkey (default: Right Alt / AltGr)
+2. Speak naturally
+3. Release — transcript is pasted at your cursor via simulated Ctrl+V
 
 ---
 
 ## Features
 
-- Hold-to-record hotkey — Right Alt/AltGr, Left Alt, Right/Left Ctrl, Right Shift
-- Real-time streaming ASR via Deepgram WebSocket
-- Optional Groq LLM post-processing:
-  - Spelling correction
-  - Grammar correction
-  - Code-mix transliteration (Hinglish, Tanglish, Spanglish, and 13 more)
-  - Translation to any target language
-- Works in any app — text injected via Ctrl+V
-- System tray app with color-coded recording state icon
-- Animated waveform overlay that reacts to your voice volume
-- 4 color themes for the overlay
-- Deepgram balance display in Settings
-- API keys stored in Windows Credential Manager
+### Core
+- Hold-to-record hotkey — Right Alt/AltGr, Left Alt, Right Ctrl, Left Ctrl, Right Shift
+- Real-time streaming ASR via Deepgram WebSocket API
+- Works in any app - browser, Word, Notepad, VS Code, Outlook, anywhere
+- Audio chime on start and stop recording
+- System tray icon that changes color by state (grey → idle, red → recording, blue → transcribing)
+
+### Groq LLM Post-processing (optional)
+- Spelling correction
+- Grammar correction
+- Code-mix transliteration — speak Hinglish, Tanglish, Spanglish and 13 more; non-Roman script gets transliterated to Roman
+- Translation — convert transcript to any of 20+ target languages
+
+### Waveform Overlay
+- Floating overlay appears at the bottom-center of the screen while recording
+- Bars react to your actual mic volume in real time (RMS-based)
+- Smooth rounded capsule bars with glow effect
+- 4 color themes to choose from:
+  - **Vibrant Blue** — `#09E0FE → #03C1F4 → #08A1F7 → #004FE1`
+  - **Bloom Rush** — `#EF709B → #FA9372` (warm pink)
+  - **Mint Flow** — `#8DE9D5 → #32C4C0` (teal)
+  - **Magic Garden** — `#BF0FFF → #7B2FFF → #3D0FBF` (purple)
+
+### UI & UX
+- Windows 11 Fluent Design onboarding window with 5-page guide (Overview, Setup, API Keys, Features, Tips)
+- Settings window with 5 tabs — ASR, Groq, Features, Hotkey, Appearance
+- All settings persist across restarts
+- API keys stored securely in Windows Credential Manager (never plain text)
 
 ---
 
 ## Requirements
 
 - Windows 10 or 11
-- Python 3.11+
-- Deepgram API key — free tier at [console.deepgram.com/signup](https://console.deepgram.com/signup)
-- Groq API key — optional, free at [console.groq.com](https://console.groq.com)
+- Python 3.10+
+- [Deepgram API key](https://console.deepgram.com/signup) — free tier (12,000 min/year)
+- [Groq API key](https://console.groq.com) — optional, free
 
 ---
 
@@ -52,45 +69,50 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The app starts immediately — a welcome window opens with setup instructions, and the mic icon appears in the system tray.
+The app starts immediately. A welcome window opens and the mic icon appears in the system tray (click `^` near the clock if you don't see it).
 
 ---
 
 ## Configuration
 
-API keys and defaults are in `config.py`:
+Edit `config.py` before running:
 
 ```python
-DEEPGRAM_API_KEY = "your-key-here"   # pre-filled for demo
-GROQ_API_KEY     = ""                 # optional
+DEEPGRAM_API_KEY = "your-deepgram-key"   # required — pre-filled for demo
+GROQ_API_KEY     = ""                     # optional
+DEFAULT_DEEPGRAM_MODEL    = "nova-3-general"
+DEFAULT_DEEPGRAM_LANGUAGE = "multi"       # multi = handles mixed languages
+DEFAULT_GROQ_MODEL        = "llama-3.3-70b-versatile"
+DEFAULT_HOTKEY            = "right_alt"
+DEFAULT_OVERLAY_THEME     = "Vibrant Blue"
 ```
 
-On first launch, keys from `config.py` are automatically saved to Windows Credential Manager. You can also update them anytime via Settings → ASR / Groq tabs.
+Keys from `config.py` are saved to Windows Credential Manager on first launch. After that, update them via Settings → ASR / Groq tabs.
 
 ---
 
-## Setup (Settings window)
+## Settings Tabs
 
-Right-click the tray icon → Settings:
-
-| Tab | What to do |
+| Tab | Purpose |
 |---|---|
-| ASR (Deepgram) | Key is pre-filled → Fetch Models → pick model + language |
-| Hotkey | Pick your trigger key (default: Right Alt) |
-| Groq (LLM) | Optional — paste key → Fetch Models |
-| Features | Enable spelling/grammar/code-mix/translation |
+| ASR (Deepgram) | API key, model selection, language |
+| Groq (LLM) | API key, model selection |
+| Features | Spelling, grammar, code-mix, translation toggles |
+| Hotkey | Choose which key to hold while speaking |
 | Appearance | Pick waveform overlay color theme |
 
 ---
 
 ## Recommended Settings
 
-| Setting | Value |
+| Setting | Recommended value |
 |---|---|
-| Deepgram model | `nova-3-general` |
+| Model | `nova-3-general` |
 | Language (English) | `en-US` |
-| Language (mixed) | `multi` |
+| Language (mixed / multilingual) | `multi` |
 | Groq model | `llama-3.3-70b-versatile` |
+
+For code-mix (e.g. Hinglish): set language to `multi`, enable Code-Mix Input in Features tab, select your language pair.
 
 ---
 
@@ -103,33 +125,39 @@ vocalflow-windows/
 ├── requirements.txt      # Dependencies
 │
 ├── core/                 # Business logic
+│   ├── __init__.py
 │   ├── app_state.py      # Shared state, themes, hotkey options
-│   ├── audio_engine.py   # Mic capture + RMS level for visualization
-│   ├── audio_muter.py    # System audio mute during recording
+│   ├── audio_engine.py   # Mic capture + real-time RMS level
+│   ├── audio_muter.py    # System audio mute/unmute
 │   ├── hotkey_manager.py # Global keyboard hook
 │   └── text_injector.py  # Clipboard-based Ctrl+V injection
 │
 ├── services/             # External API clients
-│   ├── deepgram_service.py  # WebSocket streaming + model/balance fetch
-│   └── groq_service.py      # LLM post-processing
+│   ├── __init__.py
+│   ├── deepgram_service.py  # WebSocket streaming to Deepgram
+│   └── groq_service.py      # LLM post-processing via Groq
 │
 ├── storage/              # Persistence
+│   ├── __init__.py
 │   └── keychain_service.py  # Credential Manager + JSON settings
 │
 └── ui/                   # All windows
+    ├── __init__.py
     ├── tray_controller.py   # System tray icon (win32gui)
-    ├── overlay_window.py    # Animated waveform overlay
+    ├── overlay_window.py    # Voice-reactive waveform overlay
     ├── settings_window.py   # Settings UI (5 tabs)
     └── welcome_window.py    # Onboarding window
 ```
 
 ---
 
-## Extra Features (vs macOS original)
+## Notes for Reviewer
 
-- Voice-reactive waveform overlay - bars pulse with your actual mic volume
-- Groq console link in Settings → Groq tab
-- `config.py` for easy key configuration without touching the UI
-- Windows 11 Fluent Design onboarding window
+- **Multilingual tested** — verified with English, Hinglish (Hindi + English), and Tamil + English using Deepgram `multi` mode and Groq code-mix transliteration
+- **Voice-reactive overlay** — waveform bars respond to actual mic volume in real time via RMS analysis, not a static animation
+- **Windows 11 Fluent Design** — onboarding window follows Win11 design language (Segoe UI, light theme, subtle borders, accent color `#0067c0`)
+- **4 overlay themes** — each with smooth gradient color interpolation across bars
+- **Clean codebase** — organized into 4 packages, minimal lines, no unnecessary abstractions
+- **Config-first** — `config.py` has the Deepgram key pre-filled so the app works out of the box
 
 ---
