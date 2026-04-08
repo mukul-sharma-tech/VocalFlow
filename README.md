@@ -127,7 +127,7 @@ vocalflow-windows/
 
 ## Extra Features (vs macOS original)
 
-- Voice-reactive waveform overlay — bars pulse with your actual mic volume
+- Voice-reactive waveform overlay - bars pulse with your actual mic volume
 - Groq console link in Settings → Groq tab
 - `config.py` for easy key configuration without touching the UI
 - Windows 11 Fluent Design onboarding window

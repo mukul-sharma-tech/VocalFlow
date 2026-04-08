@@ -2,13 +2,11 @@
 VocalFlow Configuration
 -----------------------
 Hardcoded API keys for testing/demo purposes.
-In production, keys are stored in Windows Credential Manager via KeychainService.
-If a key is set here, it will be used as the default on first launch.
 """
 
 # Deepgram API key — used for speech-to-text
 # Get yours free at: https://console.deepgram.com/signup
-DEEPGRAM_API_KEY = "your api key"
+DEEPGRAM_API_KEY = ""
 
 # Groq API key — optional, used for spelling/grammar/translation
 # Get yours free at: https://console.groq.com

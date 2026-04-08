@@ -1,57 +1,28 @@
-"""
-Two storage layers:
-  - KeychainService  → API keys go into Windows Credential Manager (encrypted, secure)
-  - SettingsService  → Everything else goes into a JSON file in the user's home folder
-"""
-import json
-import os
-
+import json, os
 import keyring
 
-APP_NAME      = "VocalFlow"
+APP = "VocalFlow"
 SETTINGS_FILE = os.path.join(os.path.expanduser("~"), ".vocalflow_settings.json")
 
-
 class KeychainService:
-    """Wraps Windows Credential Manager via the `keyring` library."""
-
-    def store(self, key: str, value: str):
-        keyring.set_password(APP_NAME, key, value)
-
-    def retrieve(self, key: str) -> str:
-        return keyring.get_password(APP_NAME, key) or ""
-
-    def delete(self, key: str):
-        try:
-            keyring.delete_password(APP_NAME, key)
-        except Exception:
-            pass
-
+    # API keys → Windows Credential Manager (encrypted)
+    def store(self, k, v): keyring.set_password(APP, k, v)
+    def retrieve(self, k): return keyring.get_password(APP, k) or ""
+    def delete(self, k):
+        try: keyring.delete_password(APP, k)
+        except Exception: pass
 
 class SettingsService:
-    """Simple JSON-backed key-value store for non-sensitive preferences."""
-
+    # Non-sensitive settings → JSON file in home directory
     def __init__(self):
-        self._data: dict = {}
-        self._load()
-
-    def get(self, key: str, default=None):
-        return self._data.get(key, default)
-
-    def set(self, key: str, value):
-        self._data[key] = value
-        self._save()
-
-    def _load(self):
+        self._d = {}
         try:
-            with open(SETTINGS_FILE) as f:
-                self._data = json.load(f)
-        except Exception:
-            self._data = {}  # first run or corrupted file — start fresh
+            with open(SETTINGS_FILE) as f: self._d = json.load(f)
+        except Exception: pass
 
-    def _save(self):
+    def get(self, k, default=None): return self._d.get(k, default)
+    def set(self, k, v):
+        self._d[k] = v
         try:
-            with open(SETTINGS_FILE, "w") as f:
-                json.dump(self._data, f, indent=2)
-        except Exception:
-            pass
+            with open(SETTINGS_FILE, "w") as f: json.dump(self._d, f, indent=2)
+        except Exception: pass
