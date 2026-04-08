@@ -8,11 +8,11 @@ If a key is set here, it will be used as the default on first launch.
 
 # Deepgram API key — used for speech-to-text
 # Get yours free at: https://console.deepgram.com/signup
-DEEPGRAM_API_KEY = ""
+DEEPGRAM_API_KEY = "your api key"
 
 # Groq API key — optional, used for spelling/grammar/translation
 # Get yours free at: https://console.groq.com
-GROQ_API_KEY = ""
+GROQ_API_KEY = "your api key"
 
 # Default model and language
 DEFAULT_DEEPGRAM_MODEL    = "nova-3-general"
