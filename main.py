@@ -54,7 +54,7 @@ class VocalFlowApp:
         self.injector     = TextInjector()
         self.muter        = AudioMuter()
 
-        self.overlay      = OverlayWindow(self.state)
+        self.overlay      = OverlayWindow(self.state, self.audio_engine)
         self.settings_win = SettingsWindow(self.state, self.keychain, self.settings)
         self.tray         = TrayController(self.state, self._open_settings, self._quit)
         self.hotkey_mgr   = HotkeyManager(

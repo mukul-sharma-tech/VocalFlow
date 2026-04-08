@@ -13,8 +13,9 @@ from core.app_state import OVERLAY_THEMES
 W, H = 180, 64
 
 class OverlayWindow:
-    def __init__(self, app_state):
-        self._app_state = app_state
+    def __init__(self, app_state, audio_engine=None):
+        self._app_state    = app_state
+        self._audio_engine = audio_engine  # used for voice-reactive bars
         self._root = None
         self._canvas = None
         self._visible = False
@@ -121,14 +122,19 @@ class OverlayWindow:
         for i in range(bars):
             x = cx - (bars // 2) * (bar_w + gap) + i * (bar_w + gap)
 
-            # Fast, curvy vibration math
-            wave1 = math.sin(t * 0.5 + i * 0.45)
-            wave2 = math.cos(t * 0.3 + i * 0.35)
-            normalized_wave = (wave1 + wave2 + 2) / 4
-            
+            # Get live mic volume (0.0 = silence, 1.0 = loud)
+            rms = getattr(self._audio_engine, "rms_level", 0.0) if self._audio_engine else 0.0
+
+            # Idle wave always runs so bars never look frozen
+            idle = math.sin(t * 0.4 + i * 0.5) * 0.5 + 0.5  # 0.0–1.0
+
+            # Voice boost: each bar gets a slightly different phase for organic look
+            voice_phase = math.sin(t * 0.6 + i * 0.7) * 0.5 + 0.5
+            voice = rms * voice_phase
+
+            # Combine idle + voice, apply bell curve (center bars taller)
             center_boost = 1.0 - abs(i - bars // 2) / (bars // 2) * 0.4
-            
-            h = int((4 + 22 * normalized_wave) * center_boost)
+            h = int((4 + 8 * idle + 20 * voice) * center_boost)
             h = max(h, 2)
 
             # Fast color shifting math
