@@ -162,8 +162,13 @@ class VocalFlowApp:
 
     def run(self):
         import tkinter as tk
+        from welcome_window import WelcomeWindow
 
-        # tkinter needs to own the main thread on Windows
+        # Show welcome/onboarding window on every launch
+        # It runs its own mainloop and blocks until closed
+        WelcomeWindow()
+
+        # Now start the main app
         self._tk_root = tk.Tk()
         self._tk_root.withdraw()  # hidden — just keeps the event loop alive
 

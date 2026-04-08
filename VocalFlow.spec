@@ -20,6 +20,8 @@ a = Analysis(
         'win32api',
         'win32con',
         'win32gui',
+        # welcome window
+        'welcome_window',
     ],
     hookspath=[],
     hooksconfig={},
